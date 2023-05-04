@@ -2,6 +2,10 @@
 
 In this RPG cog originally by locastan - TrustyJAID, Draper, and myself have crafted a fun idle game you can play with the members of your servers.
 
+### >>> This branch is compatible with Red 3.5, and not 3.4.x <<<
+
+If you need a Red 3.4 version of this cog, see [here](https://github.com/aikaterna/gobcog/tree/red3.4).
+
 
 ## Basic Usage
 
