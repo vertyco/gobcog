@@ -403,6 +403,7 @@ class AdventureSetCommands(AdventureMixin):
         """[Owner] Change the theme for adventure.
 
         The default theme is `default`.
+        More info can be found at: <https://github.com/aikaterna/gobcog#make-your-own-adventure-theme>
         """
         if theme == "default":
             await self.config.theme.set("default")
