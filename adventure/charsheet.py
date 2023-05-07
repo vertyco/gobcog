@@ -50,7 +50,10 @@ class Item:
         self.int: int = kwargs.get("int", 0)
         self.cha: int = kwargs.get("cha", 0)
         self._rarity: str = kwargs.get("rarity", 0)
-        self.rarity: Rarities = Rarities.get_from_name(self._rarity)
+        try:
+            self.rarity: Rarities = Rarities.get_from_name(self._rarity)
+        except KeyError:
+            self.rarity = Rarities.normal
         self.dex: int = kwargs.get("dex", 0)
         self.luck: int = kwargs.get("luck", 0)
         self.owned: int = kwargs.get("owned", 0)
@@ -61,7 +64,7 @@ class Item:
             self.total_stats *= 2
         self.max_main_stat = max(self.att, self.int, self.cha, 1)
         self.lvl: int = (
-            (kwargs.get("lvl") or self.get_equip_level()) if self.rarity == "event" else self.get_equip_level()
+            (kwargs.get("lvl") or self.get_equip_level()) if self.rarity is Rarities.event else self.get_equip_level()
         )
         self.degrade = kwargs.get("degrade", 5)
 
@@ -361,11 +364,11 @@ class Character:
             return str(self.left)
         elif self.right and len(self.right.slot) > 1:
             return str(self.right)
-        elif self.left == self.right:
+        elif self.left == self.right and self.left is not None:
             return str(self.left)
-        elif self.left and self.right is None:
+        elif self.left is not None and self.right is None:
             return str(self.left)
-        elif self.right and self.left is None:
+        elif self.right is not None and self.left is None:
             return str(self.right)
         elif self.left is not None and self.right is not None:
             return humanize_list([str(self.left), str(self.right)])
@@ -692,7 +695,7 @@ class Character:
         reverse_rarities = list(reversed(Rarities))
         return reverse_rarities.index(rarity)
 
-    async def get_sorted_backpack(self, backpack: dict, slot=None, rarity=None):
+    async def get_sorted_backpack(self, backpack: dict, slot=None, rarity: Optional[Rarities] = None):
         tmp = {}
 
         def _sort(item):
@@ -787,7 +790,7 @@ class Character:
         self,
         forging: bool = False,
         consumed=None,
-        rarity=None,
+        rarity: Optional[Rarities] = None,
         slot=None,
         show_delta=False,
         equippable=False,
@@ -817,7 +820,7 @@ class Character:
                 if forging and item.rarity is Rarities.ascended:
                     if self.rebirths < 30:
                         continue
-                if rarity is not None and rarity != item.rarity:
+                if rarity is not None and rarity is not item.rarity:
                     continue
                 if equippable and not self.can_equip(item):
                     continue
