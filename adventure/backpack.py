@@ -46,7 +46,7 @@ class BackpackSellView(discord.ui.View):
     async def final_message(self, msg: str, interaction: discord.Interaction, character: Character):
         character.last_known_currency = await bank.get_balance(self.ctx.author)
         character.last_currency_check = time.time()
-        await self.cog.config.user(self.ctx.author).set(character.to_json(self.ctx, self.cog.config))
+        await self.cog.config.user(self.ctx.author).set(await character.to_json(self.ctx, self.cog.config))
         self.stop()
         pages = [page for page in pagify(msg, delims=["\n"], page_length=1900)]
         await BaseMenu(
@@ -82,15 +82,15 @@ class BackpackSellView(discord.ui.View):
                 self.ctx.guild,
             )
             price = 0
-            self.item.owned -= 1
             price += self.price
             msg = _("**{author}** sold one {item} for {price} {currency_name}.\n").format(
                 author=escape(self.ctx.author.display_name),
-                item=box(self.item, lang="ansi"),
+                item=box(self.item.ansi, lang="ansi"),
                 price=humanize_number(price),
                 currency_name=currency_name,
             )
-            if self.item.owned <= 0:
+            character.backpack[self.item.name].owned -= 1
+            if character.backpack[self.item.name].owned <= 0:
                 del character.backpack[self.item.name]
             price = max(price, 0)
             if price > 0:
@@ -121,14 +121,14 @@ class BackpackSellView(discord.ui.View):
             old_owned = self.item.owned
             count = 0
             async for _loop_counter in AsyncIter(range(0, self.item.owned), steps=50):
-                self.item.owned -= 1
                 price += self.price
-                if self.item.owned <= 0:
+                character.backpack[self.item.name].owned -= 1
+                if character.backpack[self.item.name].owned <= 0:
                     del character.backpack[self.item.name]
                 count += 1
             msg = _("**{author}** sold all their {old_item} for {price} {currency_name}.\n").format(
                 author=escape(self.ctx.author.display_name),
-                old_item=box(str(self.item) + " - " + str(old_owned), lang="ansi"),
+                old_item=box(self.item.ansi + " - " + str(old_owned), lang="ansi"),
                 price=humanize_number(price),
                 currency_name=currency_name,
             )
@@ -162,15 +162,17 @@ class BackpackSellView(discord.ui.View):
             price = 0
             old_owned = self.item.owned
             count = 0
-            async for _loop_counter in AsyncIter(range(1, self.item.owned), steps=50):
-                self.item.owned -= 1
+            async for _loop_counter in AsyncIter(range(1, character.backpack[self.item.name].owned), steps=50):
+                if character.backpack[self.item.name].owned == 1:
+                    break
+                character.backpack[self.item.name].owned -= 1
                 price += self.price
-            character.backpack[self.item.name].owned = self.item.owned
-            count += 1
+                count += 1
+
             if price != 0:
                 msg = _("**{author}** sold all but one of their {old_item} for {price} {currency_name}.\n").format(
                     author=escape(self.ctx.author.display_name),
-                    old_item=box(str(self.item) + " - " + str(old_owned - 1), lang="ansi"),
+                    old_item=box(self.item.ansi + " - " + str(old_owned - 1), lang="ansi"),
                     price=humanize_number(price),
                     currency_name=currency_name,
                 )
@@ -503,7 +505,7 @@ class BackPackCommands(AdventureMixin):
                 items = [i for n, i in c.backpack.items() if i.rarity not in [Rarities.forged]]
                 count = 0
                 async for item in AsyncIter(items, steps=100):
-                    if rarity and item.rarity.name != rarity:
+                    if rarity and item.rarity is not rarity:
                         continue
                     if slot:
                         if len(item.slot) == 1 and slot != item.slot[0]:
@@ -515,14 +517,16 @@ class BackPackCommands(AdventureMixin):
                     async for _loop_counter in AsyncIter(range(0, old_owned), steps=100):
                         item.owned -= 1
                         item_price += _sell(c, item)
+                        log.debug(f"{item_price=}")
                         if item.owned <= 0:
                             del c.backpack[item.name]
                     item_price = max(item_price, 0)
                     msg += _("{old_item} sold for {price}.\n").format(
-                        old_item=str(old_owned) + " " + str(item),
+                        old_item=str(old_owned) + " " + item.ansi,
                         price=humanize_number(item_price),
                     )
                     total_price += item_price
+                    log.debug(f"{total_price}")
                 if total_price > 0:
                     try:
                         await bank.deposit_credits(ctx.author, total_price)
@@ -563,7 +567,7 @@ class BackPackCommands(AdventureMixin):
             return await ctx.send(
                 box(
                     _("\n{author}, your {device} is refusing to be sold and bit your finger for trying.").format(
-                        author=escape(ctx.author.display_name), device=str(item)
+                        author=escape(ctx.author.display_name), device=item.ansi
                     ),
                     lang="ansi",
                 )
@@ -578,7 +582,7 @@ class BackPackCommands(AdventureMixin):
         price_shown = _sell(c, item)
         message = _("**{author}**, do you want to sell this item for {price} each? {item}").format(
             author=escape(ctx.author.display_name),
-            item=box(str(item), lang="ansi"),
+            item=box(item.ansi, lang="ansi"),
             price=humanize_number(price_shown),
         )
         try:
@@ -1005,7 +1009,7 @@ class BackPackCommands(AdventureMixin):
                                 del character.backpack[item.name]
                         item_price = max(item_price, 0)
                         msg += _("{old_item} sold for {price}.\n").format(
-                            old_item=str(old_owned) + " " + str(item),
+                            old_item=str(old_owned) + " " + item.ansi,
                             price=humanize_number(item_price),
                         )
                         total_price += item_price
