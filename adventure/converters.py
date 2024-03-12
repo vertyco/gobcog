@@ -359,7 +359,7 @@ class ItemConverter(Transformer):
             items = ""
             view = ConfirmItemView(60, lookup, ctx.author)
             for number, item in enumerate(lookup):
-                items += f"{number}. {str(item)} (owned {item.owned})\n"
+                items += f"{number}. {item.as_ansi()} (owned {item.owned})\n"
 
             await ctx.send(
                 _("Multiple items share that name, which one would you like?\n{items}").format(
@@ -715,13 +715,15 @@ class SkillConverter(Transformer):
 
 class ChallengeConverter(Transformer):
     @classmethod
-    async def convert(cls, ctx: commands.Context, argument: str) -> str:
+    async def convert(cls, ctx: commands.Context, argument: str) -> Union[str, int]:
         if ctx.author.id not in (*ctx.bot.owner_ids, *DEV_LIST):
             return ""
+        if argument.isnumeric():
+            return int(argument)
         cog = ctx.bot.get_cog("Adventure")
         monsters, monster_stats, transcended = await cog.update_monster_roster()
         if argument not in monsters:
-            return ""
+            return int(argument, 16)
         return argument
 
     @classmethod

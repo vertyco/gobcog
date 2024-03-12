@@ -1,16 +1,26 @@
+from __future__ import annotations
+
 import logging
-from typing import List, MutableMapping, TypedDict
+from dataclasses import dataclass
+from typing import List, Literal, MutableMapping, TypedDict
 
 from redbot.core import commands
 
 log = logging.getLogger("red.cogs.adventure")
 
 
-class StatRange(TypedDict):
-    stat_type: str
+@dataclass
+class StatRange:
+    stat_type: Literal["hp", "dipl"]
     min_stat: float
     max_stat: float
     win_percent: float
+
+    def __getitem__(self, name: str):
+        return getattr(self, name)
+
+    def get(self, name: str, default=None):
+        return getattr(self, name, default)
 
 
 class Raid(TypedDict):
