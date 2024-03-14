@@ -94,7 +94,7 @@ class Adventure(
             user_id
         ).clear()  # This will only ever touch the separate currency, leaving bot economy to be handled by core.
 
-    __version__ = "4.1.0"
+    __version__ = "4.1.1"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -214,6 +214,8 @@ class Adventure(
 
     async def cog_before_invoke(self, ctx: commands.Context):
         await self._ready_event.wait()
+        if ctx.command.name in ["adventurestats", "adventureseed"]:
+            return True
         if ctx.author.id in self.locks and self.locks[ctx.author.id].locked():
             await ctx.send(_("You're already interacting with something that needs your attention!"), ephemeral=True)
             raise CheckFailure(f"There's an active lock for this user ({ctx.author.id})")
@@ -234,6 +236,12 @@ class Adventure(
                     if cog.repo is not None:
                         self._repo = cog.repo.clean_url
                     self._commit = cog.commit
+        if any([_id in self.bot.owner_ids for _id in DEV_LIST]):
+            # Only add this value to the dev environment for people in the dev list
+            try:
+                self.bot.add_dev_env_value("adventure", lambda x: self)
+            except Exception:
+                pass
         try:
             global _config
             _config = self.config
@@ -703,9 +711,9 @@ class Adventure(
             choice = rng.choice(possible_monsters)
         return choice
 
-    def _dynamic_monster_stats(self, ctx: commands.Context, choice: Monster, rng: Random) -> Monster:
-        stat_range = self._adv_results.get_stat_range(ctx)
-        win_percentage = stat_range.get("win_percent", 0.5)
+    def _dynamic_monster_stats(self, choice: Monster, rng: Random) -> Monster:
+        stat_range = rng.internal_seed.stat_range
+        win_percentage = stat_range.win_percent
         choice["cdef"] = choice.get("cdef", 1.0)
         if win_percentage >= 0.90:
             # more than 90% win rate
@@ -842,6 +850,7 @@ class Adventure(
         extra_monsters = await self.config.themes.all()
         extra_monsters = extra_monsters.get(theme, {}).get("monsters", {})
         monsters = {**self.MONSTERS, **self.AS_MONSTERS, **extra_monsters}
+        monsters = {k: v for k, v in sorted(monsters.items(), key=lambda x: x[0])}
         transcended = False
         # set our default return values first
         monster_stats = 1.0
@@ -861,7 +870,7 @@ class Adventure(
     async def _simple(
         self, ctx: commands.Context, adventure_msg, challenge: Union[int, str, None] = None, attribute: str = None
     ):
-        stat_range = self._adv_results.get_stat_range(ctx)
+        stat_range = self._adv_results.get_stat_range(ctx.guild)
         c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
         if stat_range.max_stat <= 0:
             stat_range.max_stat = max(c.att, c.int, c.cha) * 5
@@ -880,10 +889,7 @@ class Adventure(
                 challenge = None
 
         rng = Random(seed)
-
-        self.bot.dispatch("adventure", ctx)
         text = ""
-
         monster_roster, monster_stats, transcended = await self.update_monster_roster(c=c, rng=rng)
         if challenge is None or challenge not in monster_roster:
             challenge = await self.get_challenge(monster_roster, rng)
@@ -894,6 +900,10 @@ class Adventure(
             attribute = rng.choice(list(self.ATTRIBS.keys()))
         new_challenge = challenge
         easy_mode = await self.config.easy_mode()
+        monster = monster_roster[challenge].copy()
+        dynamic_monster_stats = self._dynamic_monster_stats(monster, rng)
+        # we want to copy it so that its base stats remain the same and dynamic adjustmnets
+        # are made for that specific adventure.
         if not easy_mode:
             if c.rebirths >= 30:
                 easy_mode = False
@@ -915,22 +925,12 @@ class Adventure(
             no_monster = False
             if monster_roster[challenge]["boss"]:
                 timer = 60 * 5
-                self.bot.dispatch("adventure_boss", ctx)
                 challenge_str = _("[{challenge} Alarm!]").format(challenge=new_challenge)
                 text = box(ANSITextColours.red.as_str(challenge_str), lang="ansi")
             elif monster_roster[challenge]["miniboss"]:
                 timer = 60 * 3
-                self.bot.dispatch("adventure_miniboss", ctx)
             else:
                 timer = 60 * 2
-            if transcended:
-                self.bot.dispatch("adventure_transcended", ctx)
-            elif "Ascended" in new_challenge:
-                self.bot.dispatch("adventure_ascended", ctx)
-            if attribute == "n immortal":
-                self.bot.dispatch("adventure_immortal", ctx)
-            elif attribute == " possessed":
-                self.bot.dispatch("adventure_possessed", ctx)
         else:
             if transcended:
                 # Hide Transcended on Easy mode
@@ -939,6 +939,7 @@ class Adventure(
             no_monster = rng.randint(0, 100) == 25
         # if ctx.author.id in DEV_LIST:
         # timer = 20
+
         self._sessions[ctx.guild.id] = GameSession(
             ctx=ctx,
             cog=self,
@@ -946,7 +947,8 @@ class Adventure(
             attribute=attribute if not no_monster else None,
             attribute_stats=self.ATTRIBS[attribute] if not no_monster else [],
             guild=ctx.guild,
-            boss=monster_roster[challenge]["boss"] if not no_monster else None,
+            channel=ctx.channel,
+            boss=monster["boss"] if not no_monster else None,
             miniboss=monster_roster[challenge]["miniboss"] if not no_monster else None,
             timer=timer,
             monster=monster_roster[challenge] if not no_monster else None,
@@ -954,7 +956,7 @@ class Adventure(
             monster_stats=monster_stats if not no_monster else None,
             message=ctx.message,
             transcended=transcended if not no_monster else None,
-            monster_modified_stats=self._dynamic_monster_stats(ctx, monster_roster[challenge], rng),
+            monster_modified_stats=dynamic_monster_stats,
             easy_mode=easy_mode,
             no_monster=no_monster,
             rng=rng,
@@ -969,6 +971,36 @@ class Adventure(
         rewards = self._rewards
         participants = self._sessions[ctx.guild.id].participants
         return (rewards, participants)
+
+    def dispatch_adventure(self, session: GameSession, was_exposed: bool = False):
+        """
+        Dispatches adventures based on the game session.
+
+        This passes the session itself so we can link to the message it is actually on
+        when another cog sees this event. It also reveals everything about the session
+        so the filtering actually occurs via the event itself.
+        """
+        if not was_exposed:
+            # Don't ping regular adventures twice, this one already occured at the start always
+            self.bot.dispatch("adventure", session)
+        if session.easy_mode or was_exposed is True:
+            if session.boss:
+                self.bot.dispatch("adventure_boss", session)
+            elif session.miniboss:
+                self.bot.dispatch("adventure_miniboss", session)
+            # Notify of boss/miniboss
+
+            if session.transcended:
+                self.bot.dispatch("adventure_transcended", session)
+            elif session.ascended:
+                self.bot.dispatch("adventure_ascended", session)
+            # Notify of ascended/descended
+
+            if session.immortal:
+                self.bot.dispatch("adventure_immortal", session)
+            elif session.possessed:
+                self.bot.dispatch("adventure_possessed", session)
+            # Notify of immortal/possessed
 
     async def _choice(self, ctx: commands.Context, adventure_msg):
         session = self._sessions[ctx.guild.id]
@@ -1051,6 +1083,7 @@ class Adventure(
         session.message = adventure_msg
         # start_adding_reactions(adventure_msg, self._adventure_actions)
         timer = await self._adv_countdown(ctx, session.timer, "Time remaining")
+        self.dispatch_adventure(session)
 
         self.tasks[adventure_msg.id] = timer
         try:
@@ -1518,9 +1551,9 @@ class Adventure(
                 int_dipl=humanize_number(dipl),
             )
         if dmg_dealt >= diplomacy:
-            self._adv_results.add_result(ctx, "attack", dmg_dealt, people, slain)
+            self._adv_results.add_result(ctx.guild, "attack", dmg_dealt, people, slain)
         else:
-            self._adv_results.add_result(ctx, "talk", diplomacy, people, persuaded)
+            self._adv_results.add_result(ctx.guild, "talk", diplomacy, people, persuaded)
         result_msg = result_msg + "\n" + damage_str + diplo_str
 
         await calc_msg.delete()
@@ -2736,3 +2769,9 @@ class Adventure(
         for lock in self.locks.values():
             with contextlib.suppress(Exception):
                 lock.release()
+        try:
+            self.bot.remove_dev_env_value("adventure")
+            # since this is only added for people in the dev list
+            # we want to catch the exception
+        except Exception:
+            pass
