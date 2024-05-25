@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
-
+import contextlib
 import discord
 from redbot.core.commands import commands
 from redbot.core.i18n import Translator
@@ -668,7 +668,8 @@ class ScoreBoardMenu(BaseMenu):
     )
     async def wins(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "wins":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             # this deferal is unnecessary now since the buttons are just disabled
             # however, in the event that the button gets passed and the state is not
             # as we expect at least try not to send the user an interaction failed message
@@ -684,7 +685,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Losses"), style=discord.ButtonStyle.grey, emoji="\N{FIRE}", row=1)
     async def losses(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "loses":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "loses"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -698,7 +700,8 @@ class ScoreBoardMenu(BaseMenu):
     async def physical(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         """stops the pagination session."""
         if self._current == "fight":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "fight"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -711,7 +714,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Magic"), style=discord.ButtonStyle.grey, emoji="\N{SPARKLES}", row=1)
     async def magic(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "spell":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "spell"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -724,7 +728,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Charisma"), style=discord.ButtonStyle.grey, emoji="\N{LEFT SPEECH BUBBLE}", row=1)
     async def diplomacy(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "talk":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "talk"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -737,7 +742,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Pray"), style=discord.ButtonStyle.grey, emoji="\N{PERSON WITH FOLDED HANDS}", row=2)
     async def praying(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "pray":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "pray"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -750,7 +756,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Run"), style=discord.ButtonStyle.grey, emoji="\N{RUNNER}", row=2)
     async def runner(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "run":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "run"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -763,7 +770,8 @@ class ScoreBoardMenu(BaseMenu):
     @discord.ui.button(label=_("Fumbles"), style=discord.ButtonStyle.grey, emoji="\N{EXCLAMATION QUESTION MARK}", row=2)
     async def fumble(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "fumbles":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "fumbles"
         rebirth_sorted = await self.cog.get_global_scoreboard(
@@ -817,7 +825,8 @@ class LeaderboardMenu(BaseMenu):
     )
     async def home(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "leaderboard":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "leaderboard"
         rebirth_sorted = await self.cog.get_leaderboard(guild=self.ctx.guild if not self.show_global else None)
@@ -826,7 +835,8 @@ class LeaderboardMenu(BaseMenu):
     @discord.ui.button(label=_("Economy"), style=discord.ButtonStyle.grey, emoji="\N{MONEY WITH WINGS}", row=1)
     async def economy(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self._current == "economy":
-            await interaction.response.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer()
             return
         self._current = "economy"
         bank_sorted = await bank.get_leaderboard(
@@ -849,7 +859,8 @@ class BackpackSelectEquip(discord.ui.Select):
                 interaction=interaction,
             )
         equip_msg = ""
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         async with self.view.cog.get_lock(self.view.ctx.author):
             for item_index in self.values:
                 equip_item = self.view.source.current_table.items[int(item_index)]
@@ -987,5 +998,6 @@ class BackpackMenu(BaseMenu):
     @discord.ui.button(style=discord.ButtonStyle.grey, emoji="\N{INFORMATION SOURCE}\N{VARIATION SELECTOR-16}", row=1)
     async def send_help(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         """Sends help for the provided command."""
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         await self.ctx.send_help(self.__help_command)

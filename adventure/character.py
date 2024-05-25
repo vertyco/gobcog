@@ -3,7 +3,7 @@ import logging
 import time
 from operator import itemgetter
 from typing import List, Optional, Union
-
+import contextlib
 import discord
 from beautifultable import ALIGN_LEFT, BeautifulTable
 from redbot.core import commands
@@ -51,7 +51,8 @@ class CharacterCommands(AdventureMixin):
         if amount < 1:
             return await smart_embed(ctx, _("Nice try :smirk:"), ephemeral=True)
         skill = skill.value if skill is not None else None  # type: ignore This returns an enum now
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         async with self.get_lock(ctx.author):
             try:
                 c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
@@ -195,7 +196,8 @@ class CharacterCommands(AdventureMixin):
                 ),
                 ephemeral=True,
             )
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         try:
             c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
         except Exception as exc:
@@ -298,7 +300,8 @@ class CharacterCommands(AdventureMixin):
         except Exception:
             log.exception("Error with the new character sheet")
             return
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         items = c.get_current_equipment(return_place_holder=True)
         msg = _("{}'s Character Sheet\n\n").format(escape(user.display_name))
         msg_len = len(msg)
@@ -337,7 +340,8 @@ class CharacterCommands(AdventureMixin):
             )
         if not await self.allow_in_dm(ctx):
             return await smart_embed(ctx, _("This command is not available in DM's on this bot."))
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         async with self.get_lock(ctx.author):
             try:
                 c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)

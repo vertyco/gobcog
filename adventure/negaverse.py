@@ -65,7 +65,8 @@ class Negaverse(AdventureMixin):
         if offering <= 500 or bal <= 500:
             ctx.command.reset_cooldown(ctx)
             return await smart_embed(ctx, _("The gods refuse your pitiful offering."), ephemeral=True)
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         if offering > bal:
             offering = int(bal)
         admin_roll = -1

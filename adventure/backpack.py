@@ -221,7 +221,8 @@ class BackPackCommands(AdventureMixin):
             except Exception as exc:
                 log.exception("Error with the new character sheet", exc_info=exc)
                 return
-            await ctx.defer()
+            with contextlib.suppress(discord.HTTPException):
+                await ctx.defer()
             msgs = await c.get_backpack(rarity=rarity, slot=slot, show_delta=show_diff)
             if not msgs:
                 return await smart_embed(
@@ -247,7 +248,8 @@ class BackPackCommands(AdventureMixin):
                 _("You tried to equip an item but the monster ahead of you commands your attention."),
                 ephemeral=True,
             )
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         async with self.get_lock(ctx.author):
             try:
                 c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
@@ -297,7 +299,8 @@ class BackPackCommands(AdventureMixin):
                 _("You tried to magically equip multiple items at once, but the monster ahead nearly killed you."),
                 ephemeral=True,
             )
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         set_list = humanize_list(sorted([f"`{i}`" for i in self.SET_BONUSES.keys()], key=str.lower))
         if set_name is None:
             ctx.command.reset_cooldown(ctx)
@@ -342,7 +345,8 @@ class BackPackCommands(AdventureMixin):
                 _("You tried to disassemble an item but the monster ahead of you commands your attention."),
                 ephemeral=True,
             )
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         async with self.get_lock(ctx.author):
             if len(backpack_items[1]) > 2:
                 view = ConfirmView(60, ctx.author)
@@ -552,7 +556,8 @@ class BackPackCommands(AdventureMixin):
                     lang="ansi",
                 )
             )
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         try:
             c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
         except Exception as exc:
@@ -613,7 +618,8 @@ class BackPackCommands(AdventureMixin):
             )
         if asking < 0:
             return await ctx.send(_("You can't *sell* for less than 0..."), ephemeral=True)
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         try:
             c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
         except Exception as exc:

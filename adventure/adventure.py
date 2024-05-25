@@ -12,6 +12,7 @@ from typing import Dict, Literal, MutableMapping, Optional, Tuple, Union
 
 import discord
 from discord.ext.commands import CheckFailure
+import discord.http
 from redbot import VersionInfo, version_info
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -532,7 +533,8 @@ class Adventure(
 
         You play by reacting with the offered emojis.
         """
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         if ctx.guild.id in self._sessions and self._sessions[ctx.guild.id].finished is False:
             adventure_obj = self._sessions[ctx.guild.id]
             link = adventure_obj.message.jump_url

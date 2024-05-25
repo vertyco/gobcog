@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Mapping, MutableMapping, Optional, Set, Tuple
-
+import contextlib
 import discord
 from redbot.core.commands import Context
 from redbot.core.i18n import Translator, set_contextual_locales_from_guild
@@ -73,7 +73,8 @@ class ActionButton(discord.ui.Button):
         await smart_embed(message=box(choice, lang="ansi"), ephemeral=True, interaction=interaction)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         user = interaction.user
         for action in Action:
             if action is self.action:
@@ -379,7 +380,8 @@ class SpecialActionButton(discord.ui.Button):
         return
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         user = interaction.user
         if not self.view.in_adventure(user):
             await self.not_in_adventure(interaction)

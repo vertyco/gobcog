@@ -5,7 +5,7 @@ import re
 import time
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
-
+import contextlib
 import discord
 from discord.ext.commands import CheckFailure
 from redbot.core.commands import Cog, Context, check
@@ -185,13 +185,15 @@ class ConfirmView(discord.ui.View):
 
     @discord.ui.button(label=_("Yes"), style=discord.ButtonStyle.green)
     async def accept_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.confirmed = True
         self.stop()
 
     @discord.ui.button(label=_("No"), style=discord.ButtonStyle.red)
     async def reject_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.confirmed = False
         self.stop()
 
@@ -214,7 +216,8 @@ class NameModal(discord.ui.Modal):
         self.view = view
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.view.item_name = self.name.value
         self.view.confirmed = True
         self.view.stop()
@@ -242,19 +245,22 @@ class LootView(discord.ui.View):
 
     @discord.ui.button(label=_("Equip"), style=discord.ButtonStyle.green)
     async def equip_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.result = LootSellEnum.equip
         self.stop()
 
     @discord.ui.button(label=_("Sell"), style=discord.ButtonStyle.red)
     async def sell_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.result = LootSellEnum.sell
         self.stop()
 
     @discord.ui.button(label=_("Put away"), style=discord.ButtonStyle.grey)
     async def putaway_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.defer()
         self.result = LootSellEnum.put_away
         self.stop()
 

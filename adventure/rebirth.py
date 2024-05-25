@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import time
-
+import contextlib
+import discord
 from redbot.core import commands
 from redbot.core.i18n import Translator
 from redbot.core.utils.chat_formatting import box, humanize_number
@@ -28,7 +29,8 @@ class RebirthCommands(AdventureMixin):
             )
         if not await self.allow_in_dm(ctx):
             return await smart_embed(ctx, _("This command is not available in DM's on this bot."))
-        await ctx.defer()
+        with contextlib.suppress(discord.HTTPException):
+            await ctx.defer()
         async with self.get_lock(ctx.author):
             try:
                 c = await Character.from_json(ctx, self.config, ctx.author, self._daily_bonus)
