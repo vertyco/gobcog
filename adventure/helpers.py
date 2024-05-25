@@ -131,6 +131,7 @@ async def _remaining(epoch):
 
 
 def _sell(c: Character, item: Item, *, amount: int = 1):
+    # TODO
     if item.rarity is Rarities.ascended:
         base = (5000, 10000)
     elif item.rarity is Rarities.legendary:
@@ -154,7 +155,7 @@ def _sell(c: Character, item: Item, *, amount: int = 1):
 
     price = min(1000000, max(price, base[0]))
     if price == 1000000:
-        deduct = random.randint(1000, 100000)
+        deduct = random.randint(1, 100000)
         if random.random() < 0.9:
             price -= deduct
     return price

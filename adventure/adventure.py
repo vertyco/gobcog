@@ -2696,8 +2696,8 @@ class Adventure(
                 newcp += petcp
                 usercp += petcp
                 usercp = min(400000, usercp)
-                if usercp == 400000 and random.random() > 0.5:
-                    deduct = random.randint(1, 10000)
+                if usercp == 400000 and random.random() > 0.1:
+                    deduct = random.randint(1, 100000)
                     usercp -= deduct
                 self._rewards[user.id]["cp"] = usercp
                 reward_message += "{mention} gained {xp} XP and {coin} {currency}.\n".format(
@@ -2715,8 +2715,8 @@ class Adventure(
 
             else:
                 usercp = min(400000, usercp)
-                if usercp == 400000 and random.random() > 0.5:
-                    deduct = random.randint(1, 10000)
+                if usercp == 400000 and random.random() > 0.1:
+                    deduct = random.randint(1, 100000)
                     usercp -= deduct
                 reward_message += "{mention} gained {xp} XP and {coin} {currency}.\n".format(
                     mention=user.mention,
