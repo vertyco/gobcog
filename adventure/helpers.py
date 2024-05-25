@@ -133,9 +133,9 @@ async def _remaining(epoch):
 def _sell(c: Character, item: Item, *, amount: int = 1):
     # TODO
     if item.rarity is Rarities.ascended:
-        base = (5000, 10000)
+        base = (4000, 9000)
     elif item.rarity is Rarities.legendary:
-        base = (1000, 2000)
+        base = (1000, 1800)
     elif item.rarity is Rarities.epic:
         base = (500, 750)
     elif item.rarity is Rarities.rare:
