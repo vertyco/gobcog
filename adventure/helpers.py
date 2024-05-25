@@ -153,11 +153,9 @@ def _sell(c: Character, item: Item, *, amount: int = 1):
         price = 0
     price += round(price * min(0.1 * c.rebirths / 15, 0.4))
 
-    price = min(1000000, max(price, base[0]))
-    if price == 1000000:
-        deduct = random.randint(0, 250000)
-        if random.random() > 0.1:
-            price -= deduct
+    price = max(price, base[0])
+    if price > 1000000:
+        price = 1000000 - random.randint(0, 250000) + c._luck
     return price
     
 
