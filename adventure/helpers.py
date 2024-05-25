@@ -152,7 +152,13 @@ def _sell(c: Character, item: Item, *, amount: int = 1):
         price = 0
     price += round(price * min(0.1 * c.rebirths / 15, 0.4))
 
-    return max(price, base[0])
+    price = min(1000000, max(price, base[0]))
+    if price == 1000000:
+        deduct = random.randint(1000, 100000)
+        if random.random() < 0.9:
+            price -= deduct
+    return price
+    
 
 
 def is_dev(user: Union[discord.User, discord.Member]):
