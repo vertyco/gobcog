@@ -2679,6 +2679,7 @@ class Adventure(
             usercp = int(cp + max((cp * 0.1 * min(1000, (c._luck + c._att) / 10)), 0))
             userxp = int(userxp * (c.gear_set_bonus.get("xpmult", 1) + daymult + session_bonus))
             
+            # TODO
             # Gear and daily bonus no longer has an effect on gold
             # usercp = int(usercp * (c.gear_set_bonus.get("cpmult", 1) + daymult))
             
@@ -2696,8 +2697,8 @@ class Adventure(
                 newcp += petcp
                 usercp += petcp
                 usercp = min(400000, usercp)
-                if usercp == 400000 and random.random() > 0.1:
-                    deduct = random.randint(1, 100000)
+                if usercp == 400000 and random.random() > 0.03:
+                    deduct = random.randint(0, 100000)
                     usercp -= deduct
                 self._rewards[user.id]["cp"] = usercp
                 reward_message += "{mention} gained {xp} XP and {coin} {currency}.\n".format(
@@ -2715,8 +2716,8 @@ class Adventure(
 
             else:
                 usercp = min(400000, usercp)
-                if usercp == 400000 and random.random() > 0.1:
-                    deduct = random.randint(1, 100000)
+                if usercp == 400000 and random.random() > 0.03:
+                    deduct = random.randint(0, 100000)
                     usercp -= deduct
                 reward_message += "{mention} gained {xp} XP and {coin} {currency}.\n".format(
                     mention=user.mention,

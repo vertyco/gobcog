@@ -155,8 +155,8 @@ def _sell(c: Character, item: Item, *, amount: int = 1):
 
     price = min(1000000, max(price, base[0]))
     if price == 1000000:
-        deduct = random.randint(1, 100000)
-        if random.random() < 0.9:
+        deduct = random.randint(0, 250000)
+        if random.random() > 0.1:
             price -= deduct
     return price
     
