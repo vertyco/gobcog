@@ -614,7 +614,14 @@ class BaseMenu(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user.id not in (*interaction.client.owner_ids, self._author_id):
-            await interaction.response.send_message(_("You are not authorized to interact with this."), ephemeral=True)
+            txt = _("You are not authorized to interact with this.")
+            try:
+                await interaction.response.send_message(txt, ephemeral=True)
+            except discord.NotFound:
+                try:
+                    await interaction.followup.send(txt, ephemeral=True)
+                except discord.NotFound:
+                    await interaction.channel.send(txt, delete_after=10)
             return False
         return True
 
