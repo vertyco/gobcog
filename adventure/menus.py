@@ -304,7 +304,7 @@ class NVScoreboardSource(WeeklyScoreboardSource):
 
 
 class SimpleSource(menus.ListPageSource):
-    def __init__(self, entries: List[str, discord.Embed]):
+    def __init__(self, entries: List[Union[str, discord.Embed]]):
         super().__init__(entries, per_page=1)
 
     def is_paginating(self):
@@ -423,7 +423,8 @@ class StopButton(discord.ui.Button):
         if interaction.message.flags.ephemeral:
             await interaction.response.edit_message(view=None)
             return
-        await interaction.message.delete()
+        with contextlib.suppress(discord.NotFound):
+            await interaction.message.delete()
 
 
 class _NavigateButton(discord.ui.Button):
@@ -444,7 +445,8 @@ class _NavigateButton(discord.ui.Button):
             self.view.current_page = 0
             page = await self.view.source.get_page(self.view.current_page)
         kwargs = await self.view._get_kwargs_from_page(page)
-        await interaction.response.edit_message(**kwargs)
+        with contextlib.suppress(discord.NotFound):
+            await interaction.response.edit_message(**kwargs)
 
 
 class BaseMenu(discord.ui.View):
@@ -574,7 +576,8 @@ class BaseMenu(discord.ui.View):
         self.current_page = page_number
         kwargs = await self._get_kwargs_from_page(page)
         await self.update()
-        await interaction.response.edit_message(**kwargs)
+        with contextlib.suppress(discord.NotFound):
+            await interaction.response.edit_message(**kwargs)
 
     async def send_initial_message(
         self, ctx: Optional[commands.Context], page: int = 0, interaction: Optional[discord.Interaction] = None
@@ -924,7 +927,8 @@ class BackpackSelectEquip(discord.ui.Select):
             self.view.selected_items.append(item)
         page = await self.view.source.get_page(self.view.current_page)
         kwargs = await self.view._get_kwargs_from_page(page)
-        await interaction.response.edit_message(**kwargs)
+        with contextlib.suppress(discord.NotFound):
+            await interaction.response.edit_message(**kwargs)
         if len(self.view.selected_items) >= 2:
             self.view.stop()
 
